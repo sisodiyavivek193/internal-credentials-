@@ -1,7 +1,7 @@
 const Credential = require("../models/Credential");
 const cryptoUtil = require("../utils/crypto");
 const AuditLog = require("../models/AuditLog");
-const APIFeatures = require("../utils/APIFeatures");
+const APIFeatures = require("../utils/apiFeatures");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { sendPushToUsers } = require("../utils/webpush");

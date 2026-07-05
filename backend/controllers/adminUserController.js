@@ -3,7 +3,7 @@ const User = require("../models/User");
 const AuditLog = require("../models/AuditLog");
 const speakeasy = require("speakeasy"); // 2FA
 const QRCode = require("qrcode"); // 2FA QR image
-const APIFeatures = require("../utils/APIFeatures");
+const APIFeatures = require("../utils/apiFeatures");
 
 /**
  * Helper: Centralized audit logging for user-management actions.
