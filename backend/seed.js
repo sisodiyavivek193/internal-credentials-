@@ -101,6 +101,7 @@
 
 
 
+require("dotenv").config();
 const mongoose = require("mongoose");
 const speakeasy = require("speakeasy");
 const bcrypt = require("bcryptjs");
@@ -110,7 +111,7 @@ const Credential = require("./models/Credential");
 const User = require("./models/User");
 
 // DB
-const MONGO_URI = "mongodb://127.0.0.1:27017/internalCredentialManager";
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/internalCredentialManager";
 
 // -----------------------------------------
 // Helper Functions
