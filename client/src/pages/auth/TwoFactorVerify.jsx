@@ -57,6 +57,9 @@ const TwoFactorVerify = () => {
             if (res.data?.success) {
                 const role = res.data.role.toLowerCase();
                 localStorage.setItem("role", role);
+                if (res.data.token) {
+                    localStorage.setItem("auth_token", res.data.token);
+                }
 
                 router.replace(role === "admin" ? "/admin" : "/dashboard");
             } else {

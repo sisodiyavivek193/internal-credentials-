@@ -31,6 +31,8 @@ const Header = ({ className, fixed, children, ...props }) => {
     const handleLogout = async () => {
         try {
             await api.post("/auth/logout", {}, { withCredentials: true });
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("role");
             // Redirect to login
             router.push('/');
         } catch (err) {

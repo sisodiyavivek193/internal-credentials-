@@ -5,6 +5,16 @@ const api = axios.create({
     withCredentials: true,
 });
 
+// 📱 Cookie ke saath-saath Authorization header bhi bhejo — iOS Safari/Chrome
+// cross-site cookies block kar dete hain, isliye token fallback zaroori hai
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 // 🔥 Error Handling Interceptor
 api.interceptors.response.use(
     (response) => response,

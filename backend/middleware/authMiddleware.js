@@ -3,7 +3,13 @@ const User = require("../models/User");
 
 module.exports = async (req, res, next) => {
 
-    const token = req.cookies.token;
+    // 📱 Pehle Authorization header check karo (Bearer token) — iOS Safari/Chrome
+    // cross-site cookies block kar dete hain (ITP), isliye header-based auth fallback hai
+    let token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    if (!token && authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.split(" ")[1];
+    }
 
     if (!token) {
         console.log("❌ NO TOKEN FOUND");

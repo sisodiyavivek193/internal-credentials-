@@ -178,6 +178,8 @@ exports.verify2FA = async (req, res) => {
             success: true,
             role: user.role,
             email: user.email,
+            token, // 📱 iOS Safari/Chrome cross-site cookies block kar dete hain (ITP),
+                   // isliye token yahan bhi bhej rahe hain taaki frontend Authorization header se bhi bhej sake
             message: "Login successful"
         });
 
