@@ -39,6 +39,15 @@ const userSchema = new mongoose.Schema(
             type: Date,
             default: null,
         },
+        // 🔄 Refresh token support: silent re-login without full password+2FA every time
+        refreshTokenHash: {
+            type: String,
+            default: null,
+        },
+        refreshTokenExpiresAt: {
+            type: Date,
+            default: null,
+        },
     },
     { timestamps: true }
 );

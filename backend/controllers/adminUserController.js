@@ -462,7 +462,11 @@ exports.bulkRestore = async (req, res) => {
 exports.revokeUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findByIdAndUpdate(id, { isActive: false }, { new: true });
+        const user = await User.findByIdAndUpdate(
+            id,
+            { isActive: false, refreshTokenHash: null, refreshTokenExpiresAt: null },
+            { new: true }
+        );
         if (!user) return res.status(404).json({ message: "User not found" });
         await createUserAudit(req, `Revoked user: ${user.email}`, "REVOKE_USER");
         res.json({ message: "User revoked", user });

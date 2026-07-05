@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require("express-rate-limit");
 
 // ✅ Sab kuch sahi se import karein
-const { login, logout, verify2FA, register } = require("../controllers/authController");
+const { login, logout, verify2FA, refreshAccessToken } = require("../controllers/authController");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // 🔒 IP-level rate limit: har IP se max 10 login attempts / 15 minutes
@@ -30,6 +30,16 @@ router.post("/login", loginLimiter, login);
 
 // ✅ VERIFY 2FA (Step 2: Authenticator Code Check)
 router.post("/verify-2fa", otpLimiter, verify2FA);
+
+// 🔄 REFRESH ACCESS TOKEN (silent re-login using refresh token)
+const refreshLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many refresh attempts. Please try again later." },
+});
+router.post("/refresh", refreshLimiter, refreshAccessToken);
 
 // LOGOUT
 router.post("/logout", authMiddleware, logout);

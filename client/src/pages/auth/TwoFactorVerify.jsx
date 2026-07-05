@@ -60,6 +60,9 @@ const TwoFactorVerify = () => {
                 if (res.data.token) {
                     localStorage.setItem("auth_token", res.data.token);
                 }
+                if (res.data.refreshToken) {
+                    localStorage.setItem("refresh_token", res.data.refreshToken);
+                }
 
                 router.replace(role === "admin" ? "/admin" : "/dashboard");
             } else {

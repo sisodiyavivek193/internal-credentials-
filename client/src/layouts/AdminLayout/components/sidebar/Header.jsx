@@ -32,6 +32,7 @@ const Header = ({ className, fixed, children, ...props }) => {
         try {
             await api.post("/auth/logout", {}, { withCredentials: true });
             localStorage.removeItem("auth_token");
+            localStorage.removeItem("refresh_token");
             localStorage.removeItem("role");
             // Redirect to login
             router.push('/');

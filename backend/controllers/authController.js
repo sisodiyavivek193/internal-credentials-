@@ -155,8 +155,18 @@ exports.verify2FA = async (req, res) => {
         const token = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: "1d" }
+            { expiresIn: "15m" } // 🔒 Access token ab chhota rehta hai (15 min) — security ke liye
         );
+
+        // 🔄 Refresh token: 30 din tak valid, sirf naya access token lene ke liye use hota hai
+        const refreshToken = jwt.sign(
+            { id: user._id, type: "refresh" },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" } // 24 hours
+        );
+        user.refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+        user.refreshTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        await user.save();
 
         await AuditLog.create({
             actorId: user._id,
@@ -171,7 +181,7 @@ exports.verify2FA = async (req, res) => {
             httpOnly: true,
             secure: true, // Cross-domain (Vercel + Render) ke liye HTTPS zaroori hai
             sameSite: "none", // Cross-site cookie allow karne ke liye
-            maxAge: 24 * 60 * 60 * 1000,
+            maxAge: 15 * 60 * 1000, // access token jitna hi (15 min) — sirf legacy/fallback ke liye
         });
 
         return res.json({
@@ -180,6 +190,7 @@ exports.verify2FA = async (req, res) => {
             email: user.email,
             token, // 📱 iOS Safari/Chrome cross-site cookies block kar dete hain (ITP),
                    // isliye token yahan bhi bhej rahe hain taaki frontend Authorization header se bhi bhej sake
+            refreshToken, // 🔄 Frontend isse localStorage mein rakhega, silent re-login ke liye
             message: "Login successful"
         });
 
@@ -202,6 +213,12 @@ exports.logout = async (req, res) => {
                 ip: req.ip,
                 userAgent: req.headers["user-agent"],
             });
+
+            // 🔄 Refresh token bhi turant invalidate karo (sirf localStorage clear karna kaafi nahi hai)
+            await User.findByIdAndUpdate(req.user.id, {
+                refreshTokenHash: null,
+                refreshTokenExpiresAt: null,
+            });
         }
 
         res.clearCookie("token", {
@@ -213,5 +230,65 @@ exports.logout = async (req, res) => {
         res.json({ success: true, message: "Logged out successfully" });
     } catch (error) {
         res.status(500).json({ message: "Logout failed" });
+    }
+};
+
+// 5. REFRESH ACCESS TOKEN (silent re-login using long-lived refresh token)
+exports.refreshAccessToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(401).json({ message: "Refresh token required" });
+        }
+
+        let decoded;
+        try {
+            decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(401).json({ message: "Refresh token invalid or expired" });
+        }
+
+        if (decoded.type !== "refresh") {
+            return res.status(401).json({ message: "Invalid token type" });
+        }
+
+        const user = await User.findById(decoded.id);
+        if (!user || !user.isActive) {
+            return res.status(401).json({ message: "Account not available" });
+        }
+
+        if (!user.refreshTokenHash || !user.refreshTokenExpiresAt || user.refreshTokenExpiresAt < new Date()) {
+            return res.status(401).json({ message: "Refresh token expired, please login again" });
+        }
+
+        const isValidRefreshToken = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+        if (!isValidRefreshToken) {
+            return res.status(401).json({ message: "Refresh token invalid, please login again" });
+        }
+
+        // ✅ Sab valid — naya short-lived access token issue karo
+        const newAccessToken = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "15m" }
+        );
+
+        // 🔄 ROLLING EXPIRY: refresh token ki expiry ko phir se 24h aage badha do.
+        // Isse jab tak user roz (kam se kam har 24h mein ek baar) app use karta rahega,
+        // use kabhi dobara pura login (password + 2FA) nahi karna padega.
+        user.refreshTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await user.save();
+
+        res.cookie("token", newAccessToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none",
+            maxAge: 15 * 60 * 1000,
+        });
+
+        return res.json({ success: true, token: newAccessToken, role: user.role });
+    } catch (error) {
+        console.error("REFRESH TOKEN ERROR:", error);
+        res.status(500).json({ message: "Server error" });
     }
 };

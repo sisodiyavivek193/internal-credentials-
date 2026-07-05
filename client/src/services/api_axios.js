@@ -15,14 +15,72 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// 🔥 Error Handling Interceptor
+// 🔥 Error Handling Interceptor + Auto-refresh on 401
+let isRefreshing = false;
+let refreshQueue = [];
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
+        const originalRequest = error.config;
+
         if (!error.response) {
-            // Server Down / Network Error
             console.error("❌ Server is not reachable!");
-        } else if (error.response.status === 404) {
+            return Promise.reject(error);
+        }
+
+        // 401 mila aur ye pehli retry try nahi hai, aur ye khud /auth/refresh ya /auth/login call nahi hai
+        if (
+            error.response.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url?.includes("/auth/refresh") &&
+            !originalRequest.url?.includes("/auth/login") &&
+            !originalRequest.url?.includes("/auth/verify-2fa")
+        ) {
+            const refreshToken = localStorage.getItem("refresh_token");
+            if (!refreshToken) {
+                return Promise.reject(error);
+            }
+
+            if (isRefreshing) {
+                // Ek refresh already chal raha hai — usi ke complete hone ka wait karo
+                return new Promise((resolve, reject) => {
+                    refreshQueue.push({ resolve, reject, originalRequest });
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                const { data } = await api.post("/auth/refresh", { refreshToken });
+                localStorage.setItem("auth_token", data.token);
+                isRefreshing = false;
+
+                // Jitne bhi requests wait kar rahi thi, unhe naye token ke saath retry karo
+                refreshQueue.forEach(({ resolve, originalRequest: req }) => {
+                    req.headers.Authorization = `Bearer ${data.token}`;
+                    resolve(api(req));
+                });
+                refreshQueue = [];
+
+                originalRequest.headers.Authorization = `Bearer ${data.token}`;
+                return api(originalRequest);
+            } catch (refreshError) {
+                isRefreshing = false;
+                refreshQueue.forEach(({ reject }) => reject(refreshError));
+                refreshQueue = [];
+
+                // Refresh bhi fail ho gaya — ab sach mein login karna padega
+                localStorage.removeItem("auth_token");
+                localStorage.removeItem("refresh_token");
+                localStorage.removeItem("role");
+                window.location.href = "/login";
+                return Promise.reject(refreshError);
+            }
+        }
+
+        if (error.response.status === 404) {
             console.error("❌ API Not Found (404)");
         } else if (error.response.status === 500) {
             console.error("❌ Internal Server Error (500)");
