@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Outlet, RouterProvider, createBrowserRouter } from 'react-router-dom'; // ✅ FIXED
-import App from './app';
+import App from './App';
 import './index.css'
 import { routesSection } from './routes/sections';
 import { ErrorBoundary } from './routes/components';
