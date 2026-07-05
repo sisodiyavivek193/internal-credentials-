@@ -169,8 +169,8 @@ exports.verify2FA = async (req, res) => {
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // prod (HTTPS) mein true, dev mein false
-            sameSite: "lax",
+            secure: true, // Cross-domain (Vercel + Render) ke liye HTTPS zaroori hai
+            sameSite: "none", // Cross-site cookie allow karne ke liye
             maxAge: 24 * 60 * 60 * 1000,
         });
 
@@ -204,7 +204,8 @@ exports.logout = async (req, res) => {
 
         res.clearCookie("token", {
             httpOnly: true,
-            sameSite: "lax"
+            secure: true,
+            sameSite: "none"
         });
 
         res.json({ success: true, message: "Logged out successfully" });

@@ -20,13 +20,13 @@ module.exports = async (req, res, next) => {
 
         if (!user) {
             console.log("❌ USER NOT FOUND (deleted?)");
-            res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
+            res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
             return res.status(401).json({ message: "Account no longer exists" });
         }
 
         if (!user.isActive) {
             console.log("❌ USER REVOKED — killing session");
-            res.clearCookie("token", { httpOnly: true, sameSite: "lax" });
+            res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
             return res.status(401).json({ message: "Your account has been revoked" });
         }
 
