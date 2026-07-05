@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:5000/api"; // ✅ Dono laptop par hain toh localhost best hai
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export async function apiRequest(endpoint, method = "GET", body) {
     console.log(`➡️ API CALL: ${method} ${endpoint}`);
