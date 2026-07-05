@@ -34,8 +34,9 @@ router.post("/verify-2fa", otpLimiter, verify2FA);
 // LOGOUT
 router.post("/logout", authMiddleware, logout);
 
-// ✅ REGISTER - Yahan galti thi! Ab ye 'register' direct use hoga
-router.post("/register", register);
+// ⚠️ REGISTER endpoint removed from here — it was publicly accessible with NO auth,
+// allowing anyone to create an account with role: "admin". User creation now only
+// happens via the protected route: POST /api/admin/users (authMiddleware + roleMiddleware("admin"))
 
 // ME
 router.get("/me", authMiddleware, (req, res) => {
